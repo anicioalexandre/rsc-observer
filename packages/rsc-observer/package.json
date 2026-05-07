@@ -1,0 +1,50 @@
+{
+  "name": "rsc-observer",
+  "version": "0.0.0",
+  "description": "Dev-time observability for React Server Components in Next.js App Router",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "exports": {
+    "./instrument-server": {
+      "types": "./dist/instrument-server.d.ts",
+      "import": "./dist/instrument-server.js",
+      "require": "./dist/instrument-server.cjs"
+    },
+    "./instrument-client": {
+      "types": "./dist/instrument-client.d.ts",
+      "import": "./dist/instrument-client.js",
+      "require": "./dist/instrument-client.cjs"
+    },
+    "./middleware": {
+      "types": "./dist/middleware.d.ts",
+      "import": "./dist/middleware.js",
+      "require": "./dist/middleware.cjs"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "bin": {
+    "rsc-observer": "./dist/cli.cjs"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "check-types": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "next": ">=15.0.0"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@types/ws": "^8.5.13",
+    "tsdown": "^0.10.0",
+    "typescript": "5.9.2"
+  }
+}
