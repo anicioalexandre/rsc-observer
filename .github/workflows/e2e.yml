@@ -16,14 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version` here — pnpm/action-setup reads it from the
+      # `packageManager: pnpm@9.0.0` field in package.json (single source of
+      # truth). Specifying both triggers "Multiple versions of pnpm specified".
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
