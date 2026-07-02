@@ -62,21 +62,25 @@ export function detailsPopover(page: Page): Locator {
   return overlayHost(page).locator(".details-popover");
 }
 
-// The "clear events" button now lives inside the chrome popover (the "▾"
-// menu). The helper opens the popover and returns the button locator.
-// Use `clearStore(page)` to actually invoke it.
+// Wide panels (>=800px, container query) show a bare "clear" button inline
+// in the header; narrow panels tuck "clear events" inside the chrome popover
+// (the "▾" menu). Match both so this works regardless of panel width.
+// Use `clearStore(page)` to invoke it — it opens the popover first if needed.
 export function clearButton(page: Page): Locator {
-  return panel(page).getByRole("button", { name: /clear events?/i });
+  return panel(page).getByRole("button", { name: /^clear(?: events?)?$/i });
 }
 
-// Open the chrome popover, click "clear events", then close the popover
-// (the click also closes it automatically per Panel's onClick handler).
+// Click whichever "clear" button is currently reachable: the inline one in
+// wide mode, or the one inside the chrome popover (opening it first) in
+// narrow mode.
 export async function clearStore(page: Page): Promise<void> {
   const p = panel(page);
-  if (!(await p.locator(".panel-chrome-popover").isVisible().catch(() => false))) {
-    await p.locator(".panel-chrome-trigger").click();
-    await p.locator(".panel-chrome-popover").waitFor({ state: "visible" });
+  if (await clearButton(page).isVisible().catch(() => false)) {
+    await clearButton(page).click();
+    return;
   }
+  await p.locator(".panel-chrome-trigger").click();
+  await p.locator(".panel-chrome-popover").waitFor({ state: "visible" });
   await clearButton(page).click();
 }
 

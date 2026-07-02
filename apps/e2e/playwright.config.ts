@@ -35,7 +35,17 @@ export default defineConfig({
   webServer: {
     command:
       "pnpm --filter rsc-observer build && pnpm --filter demo-next dev",
-    url: "http://localhost:3000",
+    // Probe the rsc-observer static route, not "/". Playwright's webServer
+    // only treats 2xx/3xx/401-403 as ready and keeps polling on anything
+    // else (docs: https://playwright.dev/docs/test-webserver) — a plain "/"
+    // returns 200 from Next regardless of whether instrumentation.ts's
+    // async register() has finished, so tests could start racing the patch
+    // install. tryServeStatic only returns 200 here once the http.Server
+    // patch is installed and the IIFE is loaded; before that Next's own
+    // router 404s it, which keeps Playwright waiting instead of starting
+    // early. Cold Turbopack compiles on CI make this race much wider than
+    // on a warm local machine.
+    url: "http://localhost:3000/rsc-observer/client.js",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
     stdout: "pipe",

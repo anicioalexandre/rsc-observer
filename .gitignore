@@ -45,3 +45,4 @@ yarn-error.log*
 # Local agent / MCP state — per-developer, not for the repo
 .claude/
 .playwright-mcp/
+tsconfig.tsbuildinfo
