@@ -1,6 +1,27 @@
+import type { Page } from "@playwright/test";
 import { test, expect } from "./_fixtures";
 import { openPanel, panel, setTracking } from "./_helpers/overlay";
 import { chromePopover, chromeTrigger, openChromePopover } from "./_helpers/timeline";
+
+// Drag tests need a panel that is (a) compact — narrow enough (< 800px) that
+// the header centre is bare, since the wide-mode inline filter group fills the
+// centre and carries onPointerDown={stopDrag} — and (b) positioned with room
+// to move. Seeding a 600×700 size via localStorage (height ≥ --panel-min-height
+// 667 so it doesn't overflow past the toggle) at the default 1280×900 viewport
+// puts the panel near the right edge with plenty of slack. addInitScript lands
+// the value before the overlay reads it on mount; it re-applies on reload too.
+async function seedCompactPanel(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem(
+        "__rsc_observer_panel_size",
+        JSON.stringify({ width: 600, height: 700 }),
+      );
+    } catch {
+      // storage disabled — test will fall back to the default layout
+    }
+  });
+}
 
 // Spec 17 — window-style chrome added in Phase 3:
 //   • title-bar drag  • 8 resize handles  • position + size persistence
@@ -25,23 +46,36 @@ test.describe("panel chrome", () => {
   });
 
   test("[#17.1] title-bar drag updates panel position", async ({ page }) => {
+    await seedCompactPanel(page);
     await page.goto("/baseline");
     const p = await openPanel(page);
     const before = await p.boundingBox();
     if (!before) throw new Error("panel not visible");
-    const header = p.locator(".panel-header");
-    await header.hover();
+    // useDraggable moves the panel by the *cursor delta* from the grab point.
+    // Grab the header centre explicitly, then move by a known relative delta
+    // (−80, +40) so the assertion is independent of where in the header we
+    // grabbed. Both edges stay on-screen (compact panel has slack).
+    const h = await p.locator(".panel-header").boundingBox();
+    if (!h) throw new Error("header not visible");
+    const grabX = h.x + h.width / 2;
+    const grabY = h.y + h.height / 2;
+    await page.mouse.move(grabX, grabY);
     await page.mouse.down();
-    await page.mouse.move(before.x - 80, before.y + 40, { steps: 5 });
+    await page.mouse.move(grabX - 80, grabY + 40, { steps: 5 });
     await page.mouse.up();
     const after = await p.boundingBox();
     expect(after).not.toBeNull();
     if (!after) return;
-    // Allow ±2px for sub-pixel rounding.
+    // Panel tracked the −80/+40 cursor delta. Allow ±3px for sub-pixel rounding.
     expect(Math.abs(after.x - (before.x - 80))).toBeLessThan(4);
+    expect(Math.abs(after.y - (before.y + 40))).toBeLessThan(4);
   });
 
   test("[#17.2] panel position persists across reload", async ({ page }) => {
+    // Compact panel so the header centre is draggable (see #17.1). This test
+    // only asserts the post-drag position survives a reload, so the exact drag
+    // delta doesn't matter — just that the drag takes effect.
+    await seedCompactPanel(page);
     await page.goto("/baseline");
     const p = await openPanel(page);
     const before = await p.boundingBox();
@@ -66,6 +100,8 @@ test.describe("panel chrome", () => {
   });
 
   test("[#17.3] dragging stops at viewport edges", async ({ page }) => {
+    // Compact panel so the header centre is draggable (see #17.1).
+    await seedCompactPanel(page);
     await page.goto("/baseline");
     const p = await openPanel(page);
     const viewport = page.viewportSize();
@@ -195,20 +231,30 @@ test.describe("panel chrome", () => {
   test("[#17.9] wide mode shows inline filter bar; narrow mode hides it", async ({
     page,
   }) => {
-    // Default panel width (880) is wide; expect the inline group + no V button.
+    // Inline group vs "▾" trigger is toggled by a CSS *container query* on the
+    // panel's OWN width (≥ 800px = wide), watched by a ResizeObserver on the
+    // panel element. A windowed panel does NOT auto-shrink when the viewport
+    // shrinks (size is fixed at mount), so drive the panel width directly.
+    // Both elements are always in the DOM — assert visibility, not DOM count.
     await page.setViewportSize({ width: 1400, height: 900 });
     await page.goto("/baseline");
     const p = await openPanel(page);
-    await expect(p.locator(".panel-header-inline")).toHaveCount(1);
-    await expect(p.locator(".panel-chrome-trigger")).toHaveCount(0);
+    // Default panel width (880) is wide: inline shown, trigger hidden.
+    await expect(p.locator(".panel-header-inline")).toBeVisible();
+    await expect(p.locator(".panel-chrome-trigger")).toBeHidden();
 
-    // Resize the viewport narrow so the panel auto-shrinks below the
-    // 800px compact threshold.
-    await page.setViewportSize({ width: 700, height: 900 });
-    // Give the ResizeObserver a tick to fire.
-    await page.waitForTimeout(150);
-    await expect(p.locator(".panel-header-inline")).toHaveCount(0);
-    await expect(p.locator(".panel-chrome-trigger")).toHaveCount(1);
+    // Shrink the panel below the 800px threshold via the SE resize handle —
+    // this is what actually flips the container query (same mechanism as the
+    // panel-resize tests above). ~320px inward → ~560px, comfortably compact.
+    const handle = p.locator(".panel-resize-se");
+    const hb = await handle.boundingBox();
+    if (!hb) throw new Error("SE resize handle not visible");
+    await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(hb.x - 320, hb.y + hb.height / 2, { steps: 6 });
+    await page.mouse.up();
+    await expect(p.locator(".panel-header-inline")).toBeHidden();
+    await expect(p.locator(".panel-chrome-trigger")).toBeVisible();
   });
 
   test("[#17.10] chrome popover opens on V-click and closes on outside click", async ({

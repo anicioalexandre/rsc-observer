@@ -1,5 +1,6 @@
 import { test, expect } from "./_fixtures";
 import {
+  clearButton,
   clearStore,
   openPanel,
   panel,
@@ -23,10 +24,11 @@ test.describe("clear all", () => {
   }) => {
     await page.goto("/baseline");
     await openPanel(page);
+    // openChromePopover is a no-op in wide mode (controls are inline). Use the
+    // mode-aware clearButton helper, whose regex matches the inline "clear"
+    // label as well as the popover's "clear events" label.
     await openChromePopover(page);
-    await expect(
-      panel(page).getByRole("button", { name: /clear events?/i }),
-    ).toBeVisible();
+    await expect(clearButton(page)).toBeVisible();
   });
 
   test("[#16.2] clear empties the SERVER lane", async ({ page }) => {

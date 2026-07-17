@@ -22,11 +22,13 @@ jobs:
       fail-fast: false
       matrix:
         # N-way split. Bump both the list and `shardTotal` in lockstep to add
-        # shards (e.g. slower suite → 6/8 shards). Each entry is a separate
-        # runner with its own demo-next dev server, so parallelism here does
-        # NOT stress a single server — that's why we can keep workers=1.
-        shardIndex: [1, 2, 3, 4]
-        shardTotal: [4]
+        # shards. 6 keeps the waterfall-heavy specs (03/05, each hitting the
+        # 3.6s /waterfall route many times) from piling into one shard —
+        # ~30 tests/shard. Each entry is a separate runner with its own
+        # demo-next dev server, so parallelism here does NOT stress a single
+        # server — that's why we can keep workers=1.
+        shardIndex: [1, 2, 3, 4, 5, 6]
+        shardTotal: [6]
     steps:
       - uses: actions/checkout@v4
 

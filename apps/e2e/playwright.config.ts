@@ -35,7 +35,23 @@ export default defineConfig({
     trace: "on-first-retry",
     video: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  // devices["Desktop Chrome"] defaults to a 720px-tall viewport. The panel's
+  // CSS min-height is 667px, but defaultSize() computes height = 0.8×innerHeight
+  // = 576px at 720px and positions the panel assuming that height — so the
+  // min-height floor makes the panel render ~91px taller than positioned-for,
+  // overlapping the fixed toggle button (panel z-index > toggle) and blocking
+  // toggle clicks. A 900px-tall viewport gives the panel room above the toggle.
+  // Width stays 1280 (panel opens wide); specs that need a specific size set
+  // their own viewport per-test.
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 900 },
+      },
+    },
+  ],
   webServer: {
     command:
       "pnpm --filter rsc-observer build && pnpm --filter demo-next dev",

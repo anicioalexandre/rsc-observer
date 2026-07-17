@@ -187,7 +187,15 @@ test.describe("overlay shell", () => {
     // shell before </body> so the toggle is visible at first paint, well
     // before the IIFE bundle loads. The HTML response itself should
     // therefore mention the SSR id.
-    const response = await page.request.get("/baseline");
+    //
+    // shouldInjectShell (html-inject.ts) intentionally skips compressed
+    // responses — and Next 16's dev server gzips HTML whenever the client
+    // sends Accept-Encoding: gzip (which page.request.get does by default),
+    // so we must request an identity (uncompressed) body to exercise the
+    // injection path this test is about.
+    const response = await page.request.get("/baseline", {
+      headers: { "Accept-Encoding": "identity" },
+    });
     const body = await response.text();
     expect(body).toContain("rsc-observer-ssr-toggle");
     expect(body).toContain("<rsc-observer-overlay");
