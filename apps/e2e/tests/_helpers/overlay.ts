@@ -84,15 +84,27 @@ export async function clearStore(page: Page): Promise<void> {
   await clearButton(page).click();
 }
 
-// Switch the preview render mode. The toggle lives in the chrome popover.
+// Switch the preview render mode. The ViewModeToggle renders inline in wide
+// mode (≥800px — the panel's 880px default under the 1280px CI viewport) and
+// behind the "▾" popover in compact mode. Only open the popover when the
+// trigger is actually present; the mode button's accessible name is the same
+// in both layouts. Mirrors the mode-aware `clearStore` helper above.
 export async function selectViewMode(
   page: Page,
   mode: "visual" | "structural",
 ): Promise<void> {
   const p = panel(page);
-  if (!(await p.locator(".panel-chrome-popover").isVisible().catch(() => false))) {
-    await p.locator(".panel-chrome-trigger").click();
-    await p.locator(".panel-chrome-popover").waitFor({ state: "visible" });
+  const trigger = p.locator(".panel-chrome-trigger");
+  if (await trigger.isVisible().catch(() => false)) {
+    if (
+      !(await p
+        .locator(".panel-chrome-popover")
+        .isVisible()
+        .catch(() => false))
+    ) {
+      await trigger.click();
+      await p.locator(".panel-chrome-popover").waitFor({ state: "visible" });
+    }
   }
   await p.getByRole("button", { name: mode, exact: true }).click();
 }

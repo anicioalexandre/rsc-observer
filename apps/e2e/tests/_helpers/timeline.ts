@@ -87,13 +87,25 @@ export function urlFilterInput(page: Page): Locator {
   return panel(page).getByPlaceholder(/filter by url/i);
 }
 
-// Opens the chrome popover (the "▾" button next to "×" in the title bar)
-// if it isn't already visible. Idempotent.
+// Reveals the filter/view-mode controls, whichever layout the panel is in.
+//
+// The panel is responsive via container query, NOT React state: at ≥800px
+// (its 880px default, hit by the 1280px CI viewport) it's in WIDE mode —
+// the FilterBar + ViewModeToggle render inline in `.panel-header-inline`
+// and the "▾" trigger is `display:none`. Below 800px it's COMPACT — those
+// controls hide behind the "▾" popover. Callers reach the controls with
+// role/placeholder queries (`filterChip`, `urlFilterInput`) that resolve
+// the inline copy directly, so in wide mode there's nothing to open. Only
+// click the trigger when it's actually present (compact mode). Idempotent.
+// Mirrors the mode-aware `clearStore` helper in _helpers/overlay.ts.
 export async function openChromePopover(page: Page): Promise<void> {
   const p = panel(page);
+  const trigger = p.locator(".panel-chrome-trigger");
+  // Wide mode: trigger hidden, controls inline — nothing to open.
+  if (!(await trigger.isVisible().catch(() => false))) return;
   const popover = p.locator(".panel-chrome-popover");
   if (await popover.isVisible().catch(() => false)) return;
-  await p.locator(".panel-chrome-trigger").click();
+  await trigger.click();
   await popover.waitFor({ state: "visible" });
 }
 
