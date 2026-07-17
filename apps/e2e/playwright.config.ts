@@ -24,7 +24,11 @@ export default defineConfig({
   // reliably breaks DATA FETCH lane assertions. workers=2 keeps the suite
   // fast (~3 min) while leaving headroom for the dev server to cope.
   workers: process.env.CI ? 1 : 2,
-  reporter: process.env.CI ? "github" : "list",
+  // In CI we shard across parallel jobs (see .github/workflows/e2e.yml).
+  // Each shard emits a `blob` report (auto-namespaced by shard index) that a
+  // downstream merge-reports job stitches into one HTML report; `github`
+  // still runs alongside it for inline PR annotations. Locally, `list`.
+  reporter: process.env.CI ? [["blob"], ["github"]] : "list",
   use: {
     baseURL: "http://localhost:3000",
     screenshot: "only-on-failure",

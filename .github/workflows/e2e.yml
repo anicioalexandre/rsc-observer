@@ -12,7 +12,21 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Per-shard cap. Each shard runs ~1/N of the suite on its own fresh dev
+    # server (workers=1), so a clean shard finishes in a few minutes. The
+    # generous ceiling only bites if a shard is genuinely wedged.
+    timeout-minutes: 15
+    strategy:
+      # Don't cancel the other shards when one fails — we want every shard's
+      # blob report so merge-reports can produce a complete picture.
+      fail-fast: false
+      matrix:
+        # N-way split. Bump both the list and `shardTotal` in lockstep to add
+        # shards (e.g. slower suite → 6/8 shards). Each entry is a separate
+        # runner with its own demo-next dev server, so parallelism here does
+        # NOT stress a single server — that's why we can keep workers=1.
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
     steps:
       - uses: actions/checkout@v4
 
@@ -38,23 +52,61 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter e2e exec playwright install --with-deps chromium
 
-      - name: Run Playwright tests
-        run: pnpm --filter e2e exec playwright test
+      - name: Run Playwright tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+        run: pnpm --filter e2e exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           CI: "true"
 
-      - name: Upload Playwright report
+      # Blob report for this shard. merge-reports stitches all of them into
+      # one HTML report. Artifact names must be unique per job → index suffix.
+      - name: Upload blob report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
-          path: apps/e2e/playwright-report/
+          name: blob-report-${{ matrix.shardIndex }}
+          path: apps/e2e/blob-report/
           retention-days: 7
 
       - name: Upload test traces (failures only)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-traces
+          name: playwright-traces-${{ matrix.shardIndex }}
           path: apps/e2e/test-results/
+          retention-days: 7
+
+  merge-reports:
+    # Runs even if some shards failed, so a red run still yields a full report.
+    if: always()
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Pull every shard's blob report into one directory.
+      - name: Download blob reports
+        uses: actions/download-artifact@v4
+        with:
+          path: apps/e2e/all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+
+      - name: Merge into HTML report
+        working-directory: apps/e2e
+        run: pnpm exec playwright merge-reports --reporter html ./all-blob-reports
+
+      - name: Upload merged HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/e2e/playwright-report/
           retention-days: 7
