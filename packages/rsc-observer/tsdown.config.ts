@@ -1,11 +1,11 @@
 import { defineConfig } from "tsdown";
 
 export default defineConfig([
-  // Node-side entries (instrumentation, middleware, CLI)
+  // Node-side entries (instrumentation register hook, server patch, CLI)
   {
     entry: {
       "instrument-server": "src/server/instrument.ts",
-      middleware: "src/server/middleware.ts",
+      instrumentation: "src/server/register.ts",
       cli: "src/cli/init.ts",
     },
     format: ["esm", "cjs"],

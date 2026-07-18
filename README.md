@@ -1,43 +1,60 @@
 # rsc-observer
 
-Dev-time observability for **React Server Components** in Next.js App Router.
-A single npm package — drops a debug overlay into your running dev server,
-captures the things RSC makes invisible, and shows them on one timeline.
+`rsc-observer` is a devtool for **React Server Components** in the Next.js App
+Router. Server Components render on the server and stream to the browser, so most
+of what they do — when each one rendered, how its payload streamed in, which
+`fetch()` a given component issued, when a Suspense boundary resolved — never
+shows up in the browser's own devtools. Running inside `next dev`, it records all
+of that — plus the client-side view of navigations, paint/LCP, and chunk
+arrivals — and lays everything on one shared time axis, so the server and the
+browser line up side by side. From there you can
+trace a slow waterfall back to the fetch that caused it, watch how a page streams
+in, and scrub to any moment to see the component tree exactly as it was then.
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│  rsc-observer   [filter ▼] [url…]                                  [—] [×]   │
-├──────────────────────────────────────────────────────────────────────────────┤
-│  TIMELINE  (one shared time axis)                                             │
-│                                                                               │
-│  ▼ SERVER                                                                     │
-│    [RSC]  /              ░░░░░░░  ·  ·   ·                                    │
-│    [RSC]  /waterfall            ░░░░░░░░░░░░░░░░░░░░░░░░░░  · · · · · ·       │
-│    [ACT]  /actions                            ▆                               │
-│                                                                               │
-│  ▼ DATA FETCH                                                                 │
-│    /api/delay?step=1            ════════════                                  │
-│    /api/delay?step=2                          ═══════                         │
-│                                                                               │
-│  ▼ CLIENT                                                                     │
-│    nav-start /            ●                                                   │
-│    LCP                                ●                                       │
-│    chunk-received                · · ·  · · · ·                               │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│ rsc-observer                                         clear   □   × │
+│ RSC   HTML   Actions   Fetches   Client         [ filter by URL… ] │
+├────────────────────────────────────────────────────────────────────┤
+│ SERVER · 3                                                         │
+│   [HTML] /              ░░░░░ · ·                                  │
+│   [RSC]  /waterfall       ░░░░░░░░░░ · · · ·                       │
+│   [ACT]  /actions                   ▆                              │
+│ DATA FETCH · 2                                                     │
+│   GET /api/delay?step=1  ════════                                  │
+│   GET /api/delay?step=2         ═════                              │
+│ CLIENT · 3                                                         │
+│   NAV /  ●    PERF LCP  ●    CHUNKS · · ·  · ·                     │
+│   ───────────────────────▲──────────────  scrubber                 │
+├────────────────────────────────────────────────────────────────────┤
+│ PREVIEW · tree at the scrubbed instant         visual · structural │
+│   <RootLayout>                        ┌─ DETAILS ────────────────┐ │
+│     <Page>                            │ GET /api/delay?step=1    │ │
+│       <Suspense> … pending            │ 312 ms · 200 · 1.2 KB    │ │
+│         <ProductGrid>                 │ owner <ProductGrid>      │ │
+│           <Card> <Card> <Card>        └──────────────────────────┘ │
+└────────────────────────────────────────────────────────────────────┘
+     drag the scrubber → the PREVIEW rebuilds the tree at that moment
 ```
 
 ## What it captures
 
-- **SERVER** — every HTTP request your app handles, with RSC vs HTML lane labels;
-  per-chunk emission ticks; Server Action invocations
-- **DATA FETCH** — every `fetch()` from inside Server Components, with owner
-  stack (when React 19's `captureOwnerStack` is available)
-- **CLIENT** — `router.push` / popstate, paint / LCP, long tasks, browser-side
-  fetches, RSC chunk arrival timing
+Three lane groups, one time axis:
 
-A scrubber drags across the unified time axis. The **PREVIEW** region renders
-the Server Component subtree as it existed at the scrubbed moment — actual
-DOM, with your app's CSS adopted into a nested shadow root.
+- **SERVER** — every HTTP request your app handles, tagged `RSC`, `HTML`, or
+  `ACT` (server action). RSC responses show a tick for each payload chunk as the
+  server flushes it, so you can see streaming progress.
+- **DATA FETCH** — every `fetch()` made from inside a Server Component, drawn as
+  a timed bar and — on React 19, where `captureOwnerStack` is available —
+  labelled with the owner component that issued it.
+- **CLIENT** — navigations (`pushState` / `replaceState` / back-forward), paint
+  and LCP, long tasks, browser-side `fetch()`s, and the arrival timing of RSC
+  chunks as the browser streams them in.
+
+The **PREVIEW** pane renders that reconstructed tree two ways — as real DOM with
+your app's own CSS (**visual**), or as a labelled node tree (**structural**).
+Hover or pin any timeline row to open the **DETAILS** pane with its timing and
+status, plus the owning component for fetches (press <kbd>Esc</kbd> to unpin).
 
 ## Install
 
@@ -46,72 +63,75 @@ npm i -D rsc-observer
 npx rsc-observer init
 ```
 
-`init` is idempotent — safe to re-run after upgrades. It creates (or appends
-to existing) three Next.js convention files:
+`init` is idempotent — safe to re-run after upgrades. It creates (or appends to)
+two one-line Next.js convention files:
 
-- `instrumentation.ts` — registers server-side capture
-- `instrumentation-client.ts` — registers browser-side capture
-- `middleware.ts` — passes requests through; bare scaffold if absent
+- `instrumentation.ts` — `export { register } from "rsc-observer/instrumentation"`
+  (server-side capture)
+- `instrumentation-client.ts` — `import "rsc-observer/instrument-client"`
+  (browser-side capture)
 
-It also writes a `.rsc-observer` marker file the dev gate checks before
-booting, and adds the marker to `.gitignore`. The marker is the opt-in:
-no marker = no instrumentation, regardless of `NODE_ENV`.
+That's the whole setup — no `middleware.ts`, no marker file, no `next.config`
+changes. Instrumentation turns on automatically under `next dev` and is a hard
+no-op in production (`NODE_ENV=production`). Opt out in dev any time with
+`RSC_OBSERVER=0`.
 
-Restart your dev server. A small toggle appears bottom-right — click it (or
-press **Ctrl+Shift+O** / **⌘+Shift+O**) to open the panel.
+Restart your dev server, then open the app. A small toggle appears bottom-right —
+click it, or press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> /
+<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>, to open the panel.
 
-## A typical 3-minute walkthrough
+## Try it in one minute
 
-1. **Hard-refresh your home page**. The SERVER lane shows `/` as one or two
-   bars (one for the HTML route + one for the RSC payload, depending on
-   Next's behaviour). Hover any bar — the **DETAILS** pane below populates.
+1. **Hard-refresh your home page.** The SERVER lane shows `/` as one or two bars
+   (an HTML route and/or its RSC payload, depending on Next's behaviour). Hover a
+   bar to populate the DETAILS pane.
 
-2. **Click around**. Each soft-nav fires a new `?_rsc=…` request the
-   browser tees as it streams in; you'll see chunk-arrival ticks under the
-   CLIENT lane lining up against the server-emit ticks above.
+2. **Click around.** Each soft navigation fires a `?_rsc=…` request that the
+   overlay tees as it streams; chunk-arrival ticks appear on the CLIENT lane,
+   lining up under the server-emit ticks above.
 
-3. **Trigger a render that fetches**. The DATA FETCH lane shows each
-   server-side `fetch()` as a bar, labelled with its owner Server Component
-   when React makes that information available.
+3. **Trigger a render that fetches.** The DATA FETCH lane draws each server-side
+   `fetch()` as a bar, labelled with its owner Server Component when React
+   exposes it.
 
-4. **Drag the scrubber**. The PREVIEW pane shows the tree at that exact
-   moment — useful when a Suspense boundary is about to resolve and you
-   want to see what the user saw mid-stream.
+4. **Drag the scrubber.** The PREVIEW pane shows the tree at that exact moment —
+   handy for watching what the user saw mid-stream, just before a Suspense
+   boundary resolved.
 
-5. **Filter**. Type a substring in the URL filter or toggle the `[RSC]`
-   `[HTML]` `[ACT]` `[fetch]` `[client]` chips to focus on one slice.
+5. **Filter.** Toggle the **RSC**, **HTML**, **Actions**, **Fetches**, or
+   **Client** chips to hide a category, or type a substring into the URL filter.
 
 ## How it stays out of the way
 
-- The overlay lives in a **closed shadow root**. Your app's styles can't
-  affect it; its styles can't leak out.
-- The bundle is served from `/rsc-observer/client.js`, so no third-party
-  origin is contacted at runtime.
-- Capture state lives in your browser's IndexedDB (ring buffer: last 100
-  requests / 1 hour / 50 MB, oldest first). Hard-refresh keeps history
-  visible. **Clear** wipes both memory and IndexedDB.
-- Production builds (`NODE_ENV=production`) and projects without the
-  `.rsc-observer` marker get a cold no-op — the package's instrumentation
-  bails out before patching anything.
+- **The overlay renders in a closed shadow root.** Host-page CSS can't reach in,
+  and the overlay's CSS can't leak out.
+- **Everything is same-origin.** The bundle is served by your own dev server at
+  `/rsc-observer/client.js`, and events arrive over a WebSocket to the same host.
+  Nothing is sent to a third party.
+- **Capture is in-memory and dev-only.** Events live in the browser tab — no disk
+  writes, no storage quota. Because the overlay usually loads after your page has
+  already begun streaming, the dev server replays the events it missed from a
+  small in-process buffer, so the timeline is complete from the very first
+  request — even after a hard refresh. **clear** empties it; restarting the dev
+  server drops the buffer.
+- **It's off in production.** Instrumentation no-ops under
+  `NODE_ENV=production`, so nothing is patched or served in a prod build.
 
 ## Troubleshooting
 
-**The toggle doesn't appear.** Confirm `instrumentation-client.ts` imports
-`rsc-observer/instrument-client` and that you've restarted the dev server
-after running `init`.
+**The toggle doesn't appear.** Restart the dev server after `init` — the client
+bundle is read into memory once and cached — and confirm `instrumentation-client.ts`
+imports `rsc-observer/instrument-client`.
 
-**The toggle is hidden behind a sticky header.** It uses `z-index:
-2147483647`, so you'd have to be doing the same in your own app. Move
-your sticky bar's stacking context if so.
+**No `[rsc-observer] server instrumentation active` log.** You're either in a
+production build (`NODE_ENV=production`) or `RSC_OBSERVER` is set to a disabling
+value (`0` / `off` / `false` / `no`). Confirm `instrumentation.ts` re-exports
+`register` from `rsc-observer/instrumentation`.
 
-**`server instrumentation active` log doesn't appear.** Check that the
-`.rsc-observer` marker exists at the project root (where you run `next
-dev`) and that `NODE_ENV !== "production"`.
-
-**The PREVIEW says "no parseable wire rows".** The captured RSC payload
-wasn't decodable — usually a non-Flight content-type or an encoding we
-don't recognise. The "raw chunk data preview" details element shows the
-first 400 bytes for diagnosis.
+**PREVIEW says "No RSC render active" or "Parser found no Flight-format rows".**
+The first means nothing was captured at the scrubbed instant — drag the scrubber
+onto a bar. The second means the payload wasn't Flight-decodable, usually an
+unfamiliar content-type or encoding.
 
 ## License
 

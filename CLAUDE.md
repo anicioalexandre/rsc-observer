@@ -56,11 +56,15 @@ fields breaks WS replay across browser tabs that opened before the change.
 
 ### Server side (Node, lives in the user's `next dev` process)
 
-Entry: `src/server/instrument.ts`. The user's `instrumentation.ts` imports
-`rsc-observer/instrument-server`, which calls `registerServerInstrumentation()`.
-Gated by `src/server/dev-gate.ts` — if `NODE_ENV=production` or the
-`.rsc-observer` marker file is missing at the project root, the call no-ops.
-The demo has the marker at `apps/demo-next/.rsc-observer`.
+Entry: `src/server/instrument.ts`. The user's `instrumentation.ts` does
+`export { register } from "rsc-observer/instrumentation"`. That `register`
+(`src/server/register.ts`) lazily imports `instrument-server` in the Node.js
+runtime, which calls `registerServerInstrumentation()`. Keeping the Node code
+behind a runtime-guarded dynamic import is what makes the one-line re-export
+safe to evaluate in the Edge runtime too.
+Gated by `src/server/dev-gate.ts` — on by default under `next dev`, a hard
+no-op when `NODE_ENV=production` or `RSC_OBSERVER` is set to
+`0`/`off`/`false`/`no`.
 
 Three things install on activate:
 
@@ -143,7 +147,8 @@ internalising:
 
 Three concurrent builds:
 
-1. Node entries (`instrument-server`, `middleware`, `cli`) — ESM + CJS.
+1. Node entries (`instrument-server`, `instrumentation` — the `register`
+   re-export, `cli`) — ESM + CJS.
 2. Browser loader (`instrument-client`, just injects the script tag) — ESM + CJS.
 3. Overlay IIFE (`client.iife.js`) — minified, `noExternal: [/.*/]`,
    defines `process.env.NODE_ENV` as `"production"` (so React's prod build
@@ -198,9 +203,11 @@ test runner stays plain `pnpm exec playwright test`.
 - **The IIFE static cache means CSS-only changes don't hot-reload.** The
   user's dev server caches `client.iife.js` in memory on first hit. After
   rebuilding, you must restart the dev server to surface bundle changes.
-- **The dev gate is fail-closed.** `apps/demo-next/.rsc-observer` is the
-  marker that turns instrumentation on. If you run a different demo or a
-  `next start` and the toggle never appears, check that file first.
+- **The dev gate is on by default in dev.** Instrumentation activates
+  automatically under `next dev` and no-ops when `NODE_ENV=production`. If the
+  toggle never appears, confirm you're not in a `next start`/production build
+  and that `RSC_OBSERVER` isn't set to `0`/`off`/`false`/`no`. (There is no
+  longer a marker file — the old `.rsc-observer` opt-in was removed.)
 - **Server-action arg/result preview is intentionally empty.** Capturing
   request bodies without disturbing Next's async-iterator body reader is
   fragile; we ship lane + name + timing only. See `wrapResponse` in
