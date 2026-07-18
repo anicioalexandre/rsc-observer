@@ -6,6 +6,11 @@
   "private": true,
   "license": "MIT",
   "exports": {
+    "./instrumentation": {
+      "types": "./dist/instrumentation.d.ts",
+      "import": "./dist/instrumentation.js",
+      "require": "./dist/instrumentation.cjs"
+    },
     "./instrument-server": {
       "types": "./dist/instrument-server.d.ts",
       "import": "./dist/instrument-server.js",
@@ -15,11 +20,6 @@
       "types": "./dist/instrument-client.d.ts",
       "import": "./dist/instrument-client.js",
       "require": "./dist/instrument-client.cjs"
-    },
-    "./middleware": {
-      "types": "./dist/middleware.d.ts",
-      "import": "./dist/middleware.js",
-      "require": "./dist/middleware.cjs"
     }
   },
   "files": ["dist", "README.md"],
