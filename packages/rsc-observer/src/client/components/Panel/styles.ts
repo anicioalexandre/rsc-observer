@@ -6,9 +6,9 @@ export const css = `
      synchronously on first render. */
   z-index: var(--z-panel);
   background: var(--color-surface);
-  border: var(--border-strong);
+  border: 2px solid var(--color-border-strong);
   border-radius: var(--radius-0);
-  box-shadow: var(--shadow-none);
+  box-shadow: var(--shadow-retro);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -63,15 +63,20 @@ export const css = `
      by the React tree itself. The min sizes don't apply here because
      the inline style wins via 100vw / 100vh. */
   border: none;
+  box-shadow: none;
 }
 
+/* Win98 caption bar — solid amber, hard ink underline, ink text. State
+   changes on the bar and its buttons snap (no easing); only paper
+   surfaces ease. */
 .panel-header {
   display: flex;
   align-items: center;
   gap: var(--space-5);
   padding: var(--space-3) var(--space-5);
-  background: var(--color-elevated);
-  border-bottom: var(--border-strong);
+  background: var(--color-accent);
+  border-bottom: 2px solid var(--color-border-strong);
+  color: var(--color-on-accent);
   flex-shrink: 0;
   height: calc(var(--titlebar-height) + var(--space-3) * 2);
   cursor: grab;
@@ -89,6 +94,7 @@ export const css = `
 
 .panel-maximized {
   border: none;
+  box-shadow: none;
 }
 
 /* The maximize / restore glyph cell — same shape as panel-close so the
@@ -190,10 +196,15 @@ export const css = `
   text-align: center;
 }
 
+/* Open state reads as a pressed key — inverted (sunken) bevel. */
 .panel-chrome-trigger.open {
-  background: var(--color-recessed);
-  border-color: var(--color-border-strong);
+  background: var(--bevel-face);
+  border-color: transparent;
   color: var(--color-text-primary);
+  box-shadow:
+    inset 1px 1px 0 var(--bevel-darker),
+    inset -1px -1px 0 var(--bevel-light),
+    inset 2px 2px 0 var(--bevel-dark);
 }
 
 /* The chrome popover is anchored to the title bar; absolute positioning
@@ -205,7 +216,8 @@ export const css = `
   right: var(--space-3);
   width: 240px;
   background: var(--color-elevated);
-  border: var(--border-strong);
+  border: 2px solid var(--color-border-strong);
+  box-shadow: var(--shadow-retro);
   border-radius: var(--radius-0);
   padding: var(--space-3);
   display: flex;
@@ -243,8 +255,8 @@ export const css = `
 .panel-chrome-action {
   text-align: left;
   width: 100%;
-  padding: var(--space-2) var(--space-4);
-  border: var(--border-soft);
+  height: 26px;
+  padding: 0 var(--space-4);
 }
 
 /* Inside the popover the view-mode toggle should fill its row. */
@@ -258,23 +270,30 @@ export const css = `
   text-align: center;
 }
 
+/* Flat paper key — the base for every clickable chrome control. Title-bar
+   controls are flat (no offset shadows) and share the 22px cell height so
+   the header centres as one row; buttons centre their content natively,
+   so the fixed height is enough. The glyph cells override this with the
+   bevel treatment below. Chrome snaps — no easing.
+   MUST NOT set display: .panel-chrome-trigger composes this class, and a
+   display here (later in source, same specificity) would override the
+   container-query show/hide rules at the top of this file. */
 .panel-action {
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--color-elevated);
+  border: 1px solid var(--color-border-strong);
   color: var(--color-text-dim);
   font-family: var(--font-mono);
   font-size: var(--font-sm);
   cursor: pointer;
-  padding: var(--space-1) var(--space-4);
+  height: 22px;
+  padding: 0 var(--space-4);
   border-radius: var(--radius-2);
   letter-spacing: 0.3px;
-  transition: color var(--transition-fast), border-color var(--transition-fast),
-              background var(--transition-fast);
+  transition: none;
 }
 
 .panel-action:hover {
   color: var(--color-text-primary);
-  border-color: var(--color-border-strong);
   background: var(--color-recessed);
 }
 
@@ -289,10 +308,56 @@ export const css = `
   text-align: center;
 }
 
+/* ─── Title-bar / popover glyph keys — raised win98 bevel ─────────────
+   The single-glyph cells (▾ power □ × and the details ×) render as small
+   bevel keys, matching the blog dialog close button. Placed AFTER the
+   .panel-action rules so the (0,1,0) base and the (0,2,0) hover
+   neutraliser win the cascade against .panel-action / :hover above. */
+
+.panel-chrome-trigger,
+.panel-tracking,
+.panel-maximize,
+.panel-close,
+.details-popover-close {
+  background: var(--bevel-face);
+  border-color: transparent;
+  color: var(--color-text-primary);
+  box-shadow:
+    inset -1px -1px 0 var(--bevel-darker),
+    inset 1px 1px 0 var(--bevel-light),
+    inset -2px -2px 0 var(--bevel-dark);
+  transition: none;
+}
+
+/* Neutralise the generic .panel-action:hover recessed fill — bevel keys
+   keep their face; only glyph colour may change (rules below). */
+.panel-chrome-trigger:hover,
+.panel-tracking:hover,
+.panel-maximize:hover,
+.panel-close:hover,
+.details-popover-close:hover {
+  background: var(--bevel-face);
+  border-color: transparent;
+  color: var(--color-text-primary);
+}
+
+/* Pressed = inverted bevel; bevel keys never translate (win98 caption
+   buttons press in place — the .panel-action:active move is for paper
+   keys only). */
+.panel-chrome-trigger:active,
+.panel-tracking:active,
+.panel-maximize:active,
+.panel-close:active,
+.details-popover-close:active {
+  transform: none;
+  box-shadow:
+    inset 1px 1px 0 var(--bevel-darker),
+    inset -1px -1px 0 var(--bevel-light),
+    inset 2px 2px 0 var(--bevel-dark);
+}
+
 .panel-close:hover {
-  background: var(--color-danger);
-  color: var(--color-text-inverse);
-  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 /*
@@ -355,9 +420,9 @@ export const css = `
   max-width: calc(100% - var(--space-7));
   max-height: 60%;
   background: var(--color-elevated);
-  border: var(--border-strong);
+  border: 2px solid var(--color-border-strong);
   border-radius: var(--radius-0);
-  box-shadow: var(--shadow-none);
+  box-shadow: var(--shadow-retro);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -381,27 +446,28 @@ export const css = `
   border-left: none;
   border-right: none;
   border-bottom: none;
+  box-shadow: none;
 }
 
 .details-popover.pinned {
   border-color: var(--color-pinned);
-  border-width: 1px;
   outline: 1px solid var(--color-pinned);
-  outline-offset: -2px;
+  outline-offset: -4px;
 }
 
+/* Slim amber caption strip — the popover is a mini window. */
 .details-popover-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--space-2) var(--space-5);
-  background: var(--color-recessed);
-  border-bottom: var(--border-soft);
+  background: var(--color-accent);
+  border-bottom: 2px solid var(--color-border-strong);
   flex-shrink: 0;
 }
 
 .details-popover-title {
-  color: var(--color-text-dim);
+  color: var(--color-on-accent);
   font-family: var(--font-mono);
   font-size: var(--font-xxs);
   font-weight: 700;
@@ -437,10 +503,13 @@ export const css = `
 
 .view-mode-toggle {
   display: inline-flex;
-  border: var(--border-soft);
+  align-items: stretch;
+  height: 22px;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-2);
   overflow: hidden;
   margin-right: var(--space-2);
+  background: var(--color-elevated);
 }
 
 .view-mode-btn {
@@ -450,10 +519,10 @@ export const css = `
   color: var(--color-text-dim);
   font-family: var(--font-mono);
   font-size: var(--font-xs);
-  padding: var(--space-1) var(--space-3);
+  padding: 0 var(--space-3);
   cursor: pointer;
   letter-spacing: 0.3px;
-  transition: color var(--transition-fast), background var(--transition-fast);
+  transition: none;
 }
 
 .view-mode-btn:last-child {
@@ -465,8 +534,11 @@ export const css = `
   background: var(--color-recessed);
 }
 
+/* Active = ink fill (the blog's inverse-badge pattern). Amber is NOT
+   used for actives here — these controls sit ON the amber title bar in
+   wide mode, and amber-on-amber would vanish. */
 .view-mode-btn.active {
-  background: var(--color-accent);
+  background: var(--color-text-primary);
   color: var(--color-text-inverse);
 }
 

@@ -1,76 +1,100 @@
 // Design tokens — single source of truth for the overlay's visual language.
 //
 // All variables are scoped to `:host` so they live inside the closed shadow
-// root, alongside every component style. Phase 5 will additionally export
-// the same palette under a light-DOM selector for the SSR toggle button.
+// root, alongside every component style.
 //
-// Palette: Mono off-white. Cream surface, ink-black accents, mono fonts
-// everywhere, 0px radius on containers, 1–2px on inputs, no shadows.
+// Palette: paper & ink with amber chrome. Warm paper surfaces, hard ink
+// borders, a single amber accent for chrome/interaction (title bar, active
+// chips, pinned, scrubber), hard offset shadows, 0px radius everywhere,
+// mono fonts everywhere. Data colours (badges, durations, perf, chunks)
+// stay multi-hue but are warm-tuned to sit on paper.
+//
+// Dark-ready: the Colour section is the only theme-dependent block. A dark
+// theme lands later as a second :host block (inside a media query or a
+// host attribute selector) that overrides ONLY the Colour section.
 
 export const css = `
 :host {
   /* ─── Colour ──────────────────────────────────────────────────────── */
 
-  --color-surface: #fafaf7;
-  --color-elevated: #ffffff;
-  --color-recessed: #f1f1ec;
+  /* Surfaces — warm paper. */
+  --color-surface: #f5f4ec;
+  --color-elevated: #fbfaf3;
+  --color-recessed: #e7e5d9;
 
-  --color-border-strong: #18181b;
-  --color-border-soft: #d4d4d8;
+  --color-border-strong: #151515;
+  --color-border-soft: #c8c5b8;
 
-  --color-text-primary: #18181b;
-  --color-text-dim: #52525b;
-  --color-text-mute: #71717a;
-  --color-text-inverse: #fafaf7;
+  /* Text — warm ink. */
+  --color-text-primary: #151515;
+  --color-text-dim: #5d5a50;
+  --color-text-mute: #9b978a;
+  /* Light text for dark/saturated fills (danger hover, duration bars,
+     scrubber label). NOT for accent fills — amber needs ink text; use
+     --color-on-accent there. */
+  --color-text-inverse: #f5f4ec;
 
-  --color-accent: #18181b;
-  --color-accent-hover: #2a2a2e;
-  --color-link: #1f3aa6;
-  --color-focus-ring: #18181b;
+  /* Accent — amber. Owns chrome/interaction only: title bar, active
+     chips, pinned, scrubber, selection. Never used for data encoding. */
+  --color-accent: #fca311;
+  --color-accent-hover: #ffc764;
+  --color-accent-overlay: #ffe6b3;
+  --color-on-accent: #151515;
+  /* Text-safe amber — dark enough to read on paper. Links, scrubber,
+     pinned outlines. */
+  --color-link: #8a5407;
+  --color-focus-ring: #151515;
 
-  --color-success: #15803d;
-  --color-warn: #a16207;
-  --color-danger: #b91c1c;
+  --color-success: #4c7a34;
+  --color-warn: #96660a;
+  --color-danger: #a32c21;
   /* "Live recording" red — slightly brighter than danger so it reads as
      a status pulse, not an error. Used by the RecordingDot when tracking
      is active. */
-  --color-rec: #dc2626;
+  --color-rec: #e0432d;
 
-  /* Per-kind badge colours (request lane). Picked for readable contrast on
-     the cream surface — darker / more saturated than the dark-theme
-     originals, but still recognisably the same hue family. */
-  --color-badge-rsc: #075985;        /* deep cyan/blue — RSC */
-  --color-badge-html: #166534;       /* deep green — HTML */
-  --color-badge-act: #92400e;        /* burnt amber — server action */
-  --color-badge-fetch: #1e3a8a;      /* indigo — DATA FETCH */
+  /* Per-kind badge colours (request lane). Same hue families as before,
+     warm-tuned for the paper surface — earthier, a touch desaturated. */
+  --color-badge-rsc: #1d5f73;        /* petrol blue — RSC */
+  --color-badge-html: #2e6b34;       /* forest green — HTML */
+  --color-badge-act: #8c4a10;        /* saddle brown — server action */
+  --color-badge-fetch: #3a4e86;      /* indigo slate — DATA FETCH */
 
   /* Per-duration band (used by request-bar, fetch-bar, fetch-chip). */
-  --color-fast: #15803d;
-  --color-medium: #a16207;
-  --color-slow: #c2410c;
-  --color-critical: #b91c1c;
+  --color-fast: #4c7a34;
+  --color-medium: #96660a;
+  --color-slow: #b24a16;
+  --color-critical: #a32c21;
 
   /* Per-client-perf marker. */
-  --color-perf-paint: #6d28d9;       /* paint dot */
-  --color-perf-fcp: #1d4ed8;         /* FCP */
-  --color-perf-lcp: #047857;         /* LCP */
-  --color-perf-other: #71717a;
-  --color-perf-longtask: #b91c1c;
+  --color-perf-paint: #6e4196;       /* plum — paint dot */
+  --color-perf-fcp: #35509e;         /* FCP */
+  --color-perf-lcp: #1f6e5b;         /* LCP */
+  --color-perf-other: #85816f;
+  --color-perf-longtask: #a32c21;
 
-  --color-nav: #6d28d9;              /* NAV marker */
+  --color-nav: #6e4196;              /* NAV marker */
 
-  --color-chunk-script: #1e3a8a;
-  --color-chunk-css: #6d28d9;
+  --color-chunk-script: #3a4e86;
+  --color-chunk-css: #6e4196;
 
   /* Suspense fieldsets. */
-  --color-suspense-pending: #a16207;
-  --color-suspense-resolved: #15803d;
+  --color-suspense-pending: #96660a;
+  --color-suspense-resolved: #4c7a34;
 
-  /* Highlights / overlays. */
-  --color-zoom-selection: rgba(24, 24, 27, 0.10);
-  --color-zoom-selection-border: #18181b;
-  --color-scrubber: #18181b;
-  --color-pinned: #18181b;
+  /* Highlights / overlays — amber interaction states. The scrubber line
+     and pinned outlines use text-safe amber for contrast; bright amber
+     is reserved for fills. */
+  --color-zoom-selection: rgba(252, 163, 17, 0.16);
+  --color-zoom-selection-border: #fca311;
+  --color-scrubber: #8a5407;
+  --color-pinned: #8a5407;
+
+  /* Win98 bevel set (raised/sunken chrome — close button, sunken input). */
+  --bevel-face: #dfdccf;
+  --bevel-light: #ffffff;
+  --bevel-dark: #8a867a;
+  --bevel-darker: #151515;
 
   /* ─── Spacing ─────────────────────────────────────────────────────── */
 
@@ -83,11 +107,13 @@ export const css = `
   --space-7: 24px;
   --space-8: 32px;
 
-  /* ─── Radius (kept tiny by design) ────────────────────────────────── */
+  /* ─── Radius (square by design — rounded-none everywhere) ─────────── */
 
+  /* radius-1/-2 kept as tokens so component CSS stays stable, but the
+     paper-and-ink system is hard-cornered: all three resolve to 0. */
   --radius-0: 0px;
-  --radius-1: 1px;
-  --radius-2: 2px;
+  --radius-1: 0px;
+  --radius-2: 0px;
 
   /* ─── Typography ──────────────────────────────────────────────────── */
 
@@ -113,10 +139,14 @@ export const css = `
   --border-strong: 1px solid var(--color-border-strong);
   --border-dashed-soft: 1px dashed var(--color-border-soft);
 
-  /* ─── Shadows (kept for symmetry — the design uses 1px borders to
-        carry the role of "elevated") ────────────────────────────────── */
+  /* ─── Shadows — hard offset, no blur ──────────────────────────────── */
 
+  --color-shadow-hard: #151515;
   --shadow-none: none;
+  /* Window-scale surfaces (panel, popovers). */
+  --shadow-retro: 4px 4px 0 0 var(--color-shadow-hard);
+  /* Control-scale surfaces (keys, chips, toggle). */
+  --shadow-retro-sm: 2px 2px 0 0 var(--color-shadow-hard);
 
   /* ─── Z-index stack ───────────────────────────────────────────────── */
 
@@ -147,10 +177,10 @@ export const css = `
   --resize-handle-thickness: 6px;
   --titlebar-height: 28px;
 
-  /* ─── Motion ──────────────────────────────────────────────────────── */
+  /* ─── Motion — paper eases, chrome snaps ──────────────────────────── */
 
   --transition-fast: 75ms ease-out;
-  --transition-base: 120ms ease-out;
+  --transition-base: 150ms ease-out;
   --rec-pulse-duration: 2s;
 }
 `;

@@ -1,12 +1,17 @@
 // Per-shadow base sheet — chrome around our placeholders + small reset.
+// This inner shadow root sits inside the overlay tree, so the overlay's
+// :host tokens are inherited and var() resolves here; the literal
+// fallbacks are the same warm values in case the mount ever changes.
+// Colour semantics mirror the structural tree: client = badge-rsc petrol,
+// suspense-pending = warn amber-brown, labels/dashes = mute/soft.
 const BASE_CSS = `
 :host { display: block; padding: 12px; min-height: 60px; color: inherit; }
 
 [data-rsco-client-ref] {
-  border: 1px dashed #3b617a;
+  border: 1px dashed var(--color-badge-rsc, #1d5f73);
   padding: 18px 8px 8px 8px;
   margin: 4px 0;
-  border-radius: 3px;
+  border-radius: 0;
   position: relative;
 }
 [data-rsco-client-ref]::before {
@@ -15,16 +20,16 @@ const BASE_CSS = `
   top: 2px;
   left: 6px;
   font: 600 9px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #7dd3fc;
+  color: var(--color-badge-rsc, #1d5f73);
   letter-spacing: 1px;
 }
 
 [data-rsco-suspense-pending] {
-  border: 1px dashed #7a5a3b;
+  border: 1px dashed var(--color-suspense-pending, #96660a);
   padding: 18px 8px 8px 8px;
   margin: 4px 0;
-  border-radius: 3px;
-  background: rgba(250, 204, 21, 0.04);
+  border-radius: 0;
+  background: rgba(150, 102, 10, 0.05);
   position: relative;
 }
 [data-rsco-suspense-pending]::before {
@@ -33,18 +38,18 @@ const BASE_CSS = `
   top: 2px;
   left: 6px;
   font: 600 9px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #facc15;
+  color: var(--color-suspense-pending, #96660a);
   letter-spacing: 1px;
 }
 
 [data-rsco-root-label] {
   font: 600 9px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #888;
+  color: var(--color-text-mute, #9b978a);
   letter-spacing: 1px;
   text-transform: uppercase;
   margin: 12px 0 6px 0;
   padding-top: 12px;
-  border-top: 1px dashed #2a2a2a;
+  border-top: 1px dashed var(--color-border-soft, #c8c5b8);
 }
 
 [data-rsco-main-root]:first-of-type [data-rsco-root-label] {
@@ -56,12 +61,12 @@ const BASE_CSS = `
 [data-rsco-extras] {
   margin-top: 16px;
   padding-top: 8px;
-  border-top: 1px dashed #2a2a2a;
+  border-top: 1px dashed var(--color-border-soft, #c8c5b8);
 }
 
 [data-rsco-extras-heading] {
   font: 600 9px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #888;
+  color: var(--color-text-mute, #9b978a);
   letter-spacing: 1px;
   text-transform: uppercase;
   margin-bottom: 6px;
@@ -74,7 +79,7 @@ const BASE_CSS = `
 [data-rsco-extra-summary] {
   cursor: pointer;
   font: 600 9px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #888;
+  color: var(--color-text-mute, #9b978a);
   padding: 2px 0;
   list-style: none;
 }

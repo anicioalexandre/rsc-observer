@@ -33,9 +33,10 @@ export const css = `
   padding: 0 var(--space-3);
 }
 
+/* Raised paper key, pressed on click (blog nav-key). Snaps, no easing. */
 .zoom-reset {
-  background: transparent;
-  border: var(--border-soft);
+  background: var(--color-elevated);
+  border: 1px solid var(--color-border-strong);
   color: var(--color-text-dim);
   font-family: var(--font-mono);
   font-size: var(--font-xxs);
@@ -43,14 +44,18 @@ export const css = `
   border-radius: var(--radius-2);
   cursor: pointer;
   letter-spacing: 0.3px;
-  transition: color var(--transition-fast), border-color var(--transition-fast),
-              background var(--transition-fast);
+  box-shadow: var(--shadow-retro-sm);
+  transition: none;
 }
 
 .zoom-reset:hover {
-  border-color: var(--color-border-strong);
   color: var(--color-text-primary);
   background: var(--color-recessed);
+}
+
+.zoom-reset:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .zoom-selection {

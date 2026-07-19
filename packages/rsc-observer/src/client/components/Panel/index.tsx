@@ -157,6 +157,15 @@ export function Panel({ onClose }: Props) {
     e.stopPropagation();
   };
 
+  // Header containers use this instead of stopDrag so only presses on
+  // actual controls are excluded — the title, chip gaps and empty flex
+  // space all stay draggable. (The chrome popover has its own stopDrag.)
+  const stopDragOnControls = (e: React.PointerEvent): void => {
+    if ((e.target as Element).closest("button, input")) {
+      e.stopPropagation();
+    }
+  };
+
   // Single hide affordance — the "×" close button. Transient state
   // (pinned ref, scrub time, zoom viewport) is preserved across hides
   // so reopening returns the user to where they were.
@@ -197,12 +206,12 @@ export function Panel({ onClose }: Props) {
         onPointerMove={drag.onPointerMove}
         onPointerUp={drag.onPointerUp}
       >
-        <div className="panel-title-group" onPointerDown={stopDrag}>
+        <div className="panel-title-group">
           <RecordingDot active={tracking} />
           <span className="panel-title">rsc-observer</span>
         </div>
 
-        <div className="panel-header-inline" onPointerDown={stopDrag}>
+        <div className="panel-header-inline" onPointerDown={stopDragOnControls}>
           <FilterBar variant="row" />
           <ViewModeToggle />
           <button
@@ -215,7 +224,7 @@ export function Panel({ onClose }: Props) {
           </button>
         </div>
 
-        <div className="panel-header-actions" onPointerDown={stopDrag}>
+        <div className="panel-header-actions" onPointerDown={stopDragOnControls}>
           <button
             ref={chromeButtonRef}
             type="button"
