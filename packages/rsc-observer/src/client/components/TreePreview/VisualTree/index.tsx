@@ -90,7 +90,7 @@ class VisualErrorBoundary extends Component<BoundaryProps, BoundaryState> {
               padding: 16,
               fontFamily: "ui-monospace, monospace",
               fontSize: 11,
-              color: "#fca5a5",
+              color: "#a32c21",
             }}
           >
             Visual render failed: {this.state.error.message}

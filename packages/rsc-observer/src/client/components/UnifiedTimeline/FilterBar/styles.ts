@@ -22,7 +22,8 @@ export const css = `
 
 .filter-bar-stacked .filter-chip {
   text-align: left;
-  padding: var(--space-2) var(--space-4);
+  height: 26px;
+  padding: 0 var(--space-4);
   width: 100%;
   font-size: var(--font-sm);
 }
@@ -31,58 +32,70 @@ export const css = `
   width: 100%;
   max-width: none;
   margin-top: var(--space-2);
-  /* Match the chip / button height: 4px vert + 8px horiz, 11px font. */
-  padding: var(--space-2) var(--space-4);
+  /* Match the stacked row height: 26px, 11px font. */
+  height: 26px;
+  padding: 0 var(--space-4);
   font-size: var(--font-sm);
 }
 
+/* Flat toggle keys. ON = ink fill (the blog's inverse-badge pattern) —
+   ink, not amber, because the chips sit ON the amber title bar in wide
+   mode and amber actives would vanish. OFF = paper. Title-bar controls
+   are flat and share a 22px height so they centre as one row; no offset
+   shadows, no press-translate. Chrome snaps — no easing. */
 .filter-chip {
-  background: var(--color-accent);
+  background: var(--color-text-primary);
   border: var(--border-strong);
   color: var(--color-text-inverse);
   font-family: var(--font-mono);
   font-size: var(--font-xs);
   letter-spacing: 0.3px;
-  padding: var(--space-1) var(--space-4);
+  height: 22px;
+  padding: 0 var(--space-4);
   border-radius: var(--radius-2);
   cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast),
-              background var(--transition-fast);
+  transition: none;
 }
 
 .filter-chip-off {
-  background: transparent;
-  border-color: var(--color-border-soft);
-  color: var(--color-text-mute);
+  background: var(--color-elevated);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-dim);
 }
 
 .filter-chip:hover {
-  background: var(--color-accent-hover);
+  background: var(--color-text-dim);
 }
 
-/* Off-state hover inverts to the same dark style as the active chip
-   so the click affordance reads clearly on cream surface. */
 .filter-chip-off:hover {
-  background: var(--color-accent);
-  color: var(--color-text-inverse);
-  border-color: var(--color-accent);
+  background: var(--color-recessed);
+  color: var(--color-text-primary);
 }
 
+/* Sunken input well (blog .win-sunken) — the inset bevel is the only
+   chrome, no border. Same 22px height as the title-bar keys; the 8px
+   horizontal padding keeps text clear of the 2px inset bevel. */
 .filter-url {
   background: var(--color-elevated);
-  border: var(--border-soft);
+  border: none;
+  box-shadow:
+    inset 1px 1px 0 var(--bevel-darker),
+    inset -1px -1px 0 var(--bevel-light),
+    inset 2px 2px 0 var(--bevel-dark);
   color: var(--color-text-primary);
   font-family: var(--font-mono);
   font-size: var(--font-xs);
-  padding: var(--space-1) var(--space-3);
+  height: 22px;
+  padding: 0 var(--space-4);
   border-radius: var(--radius-2);
   width: 180px;
   max-width: 40%;
 }
 
+/* Classic dotted focus rectangle, inset past the bevel. */
 .filter-url:focus {
-  outline: none;
-  border-color: var(--color-focus-ring);
+  outline: 1px dotted var(--color-focus-ring);
+  outline-offset: -4px;
 }
 
 .filter-url::placeholder {

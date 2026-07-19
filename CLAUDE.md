@@ -162,11 +162,24 @@ rebuild AND a dev-server restart to surface.
 ## Design system
 
 `src/client/styles/tokens.ts` is the single source of truth — colour,
-spacing, radius, font, z-index, motion. The palette is a "mono off-white"
-scheme: cream surface, ink-black text + accent, `ui-monospace` everywhere,
-0px radius on containers (1–2px on inputs), no shadows. Component CSS
-modules consume `var(--token)` exclusively — no hex literals in
-`components/**/styles.ts`.
+spacing, radius, font, z-index, motion. The palette is "paper & ink with
+amber chrome" (ported from the author's blog): warm paper surfaces, hard
+`#151515` ink borders, one amber `#FCA311` accent reserved for
+chrome/interaction (title bars, open toggle, selection, scrubber, pinned —
+never data encoding), multi-hue warm-tuned data colours (badges, duration
+bands, perf markers), `ui-monospace` everywhere, 0px radius everywhere,
+hard offset shadows (`--shadow-retro`/`-sm`) on windows only, win98 bevel
+keys (`--bevel-*`) on title-bar glyph cells and the sunken URL input.
+Title-bar controls are flat (no offset shadows) and share a 22px height.
+Actives ON the amber title bar use ink fill + paper text, not amber
+(amber-on-amber vanishes). Chrome state changes snap (`transition: none`);
+paper surfaces ease. Light-only today, but tokens are structured so a dark
+block can later override just the Colour section. Component CSS modules
+consume `var(--token)` exclusively — no hex literals in
+`components/**/styles.ts` (the two sanctioned exceptions: VisualTree's
+inner-shadow `BASE_CSS` uses `var(--token, fallback)`, and the SSR shell
+in `server/transport/html-inject.ts` hardcodes values manually synced with
+tokens.ts).
 
 The panel is responsive via **CSS container queries**, not React state.
 `.panel { container-type: inline-size; container-name: panel; }` and a
@@ -174,7 +187,11 @@ The panel is responsive via **CSS container queries**, not React state.
 filter group or the `▾` chrome popover shows. Default rules and the
 container-query overrides MUST keep matching specificity (both bare
 `.classname`) — adding `.panel .classname` to the default raises specificity
-and silently disables the wide-mode override.
+and silently disables the wide-mode override. Same trap via source order:
+never set `display` on a shared base class that the query-controlled
+elements compose (`.panel-chrome-trigger` carries `.panel-action`; a
+`display` on `.panel-action`, later in source at equal specificity, beats
+the `@container` override and keeps the trigger visible in wide mode).
 
 ## E2E suite
 

@@ -1,4 +1,7 @@
 export const css = `
+/* Raised paper key (blog nav-key). Clicking presses it down-right into
+   its own shadow; while the panel is open it STAYS pressed and fills
+   amber (blog ReactionButton pattern). Chrome snaps — no easing. */
 .toggle {
   position: fixed;
   bottom: var(--space-6);
@@ -7,9 +10,9 @@ export const css = `
   height: var(--toggle-height);
   padding: 0 var(--space-4);
   border-radius: var(--radius-1);
-  background: var(--color-accent);
-  color: var(--color-text-inverse);
-  border: var(--border-strong);
+  background: var(--color-elevated);
+  color: var(--color-text-primary);
+  border: 2px solid var(--color-border-strong);
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: var(--font-sm);
@@ -19,18 +22,28 @@ export const css = `
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  box-shadow: var(--shadow-none);
-  transition: background var(--transition-fast), color var(--transition-fast);
+  box-shadow: var(--shadow-retro-sm);
+  transition: none;
 }
 
 .toggle:hover {
-  background: var(--color-accent-hover);
+  background: var(--color-recessed);
+}
+
+.toggle:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .toggle[data-open="true"] {
-  background: var(--color-elevated);
-  color: var(--color-text-primary);
-  border-color: var(--color-border-strong);
+  transform: translate(2px, 2px);
+  box-shadow: none;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.toggle[data-open="true"]:hover {
+  background: var(--color-accent-hover);
 }
 
 /* The recording-status pip is rendered inside the toggle via the shared
