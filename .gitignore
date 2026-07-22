@@ -46,3 +46,7 @@ yarn-error.log*
 .claude/
 .playwright-mcp/
 tsconfig.tsbuildinfo
+
+# release-time copies
+packages/rsc-observer/README.md
+packages/rsc-observer/LICENSE
