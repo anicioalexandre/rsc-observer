@@ -1,6 +1,6 @@
 {
   "name": "rsc-observer",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Dev-time observability for React Server Components in Next.js App Router",
   "type": "module",
   "license": "MIT",
@@ -12,7 +12,13 @@
   },
   "homepage": "https://github.com/anicioalexandre/rsc-observer#readme",
   "bugs": "https://github.com/anicioalexandre/rsc-observer/issues",
-  "keywords": ["react", "rsc", "server-components", "nextjs", "devtools"],
+  "keywords": [
+    "react",
+    "rsc",
+    "server-components",
+    "nextjs",
+    "devtools"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -33,7 +39,11 @@
       "require": "./dist/instrument-client.cjs"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "bin": {
     "rsc-observer": "./dist/cli.cjs"
   },
